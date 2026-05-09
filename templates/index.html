@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ATS Resume Matcher v2.0 — Advanced Semantic</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #0d47a1;
+      --success: #34a853;
+      --warning: #ea4335;
+      --bg: #f8f9fa;
+      --surface: #ffffff;
+      --text: #202124;
+      --text-light: #5f6368;
+      --border: #dadce0;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.24);
+      --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    header h1 { font-size: 28px; margin-bottom: 6px; letter-spacing: -.5px; }
+    header p { font-size: 14px; opacity: .9; }
+    .badge { display: inline-block; background: rgba(255,255,255,.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 10px; }
+
+    /* Container */
+    .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 { font-size: 18px; margin-bottom: 20px; color: var(--text); }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.5;
+      transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(26,115,232,.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+    .form-group.file { position: relative; }
+    .form-group.file input[type="file"] {
+      display: none;
+    }
+    .file-label {
+      display: block;
+      padding: 16px;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      background: var(--bg);
+    }
+    .file-label:hover { border-color: var(--primary); background: rgba(26,115,232,.02); }
+    .file-label.has-file { border-color: var(--success); background: rgba(52,168,83,.02); }
+    .file-label span { font-size: 13px; color: var(--text-light); }
+    .file-name { font-size: 13px; color: var(--success); margin-top: 6px; font-weight: 500; }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      letter-spacing: -.2px;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      width: 100%;
+    }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,115,232,.3); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-back {
+      background: transparent;
+      color: var(--primary);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      margin-top: 20px;
+    }
+    .btn-back:hover { border-color: var(--primary); background: rgba(26,115,232,.02); }
+
+    /* Loading & Messages */
+    .loader { display: none; text-align: center; padding: 20px; }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { display: none; padding: 12px 16px; background: #ffcdd2; color: #c62828; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+    .success-banner { display: none; padding: 16px; background: #c8e6c9; color: #2e7d32; border-radius: 8px; margin-bottom: 20px; }
+
+    /* Results */
+    .results { display: none; }
+    .result-header { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+    .score-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .score-item {
+      background: var(--bg);
+      padding: 18px;
+      border-radius: 10px;
+      border-left: 4px solid var(--primary);
+    }
+    .score-item.warning { border-left-color: #ea4335; }
+    .score-item.success { border-left-color: var(--success); }
+    .score-label { font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .score-value { font-size: 32px; font-weight: 700; color: var(--text); }
+    .score-unit { font-size: 16px; color: var(--text-light); }
+    .bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .bar-fill {
+      height: 100%;
+      background: var(--primary);
+      transition: width .5s ease;
+      width: 0%;
+    }
+    .score-item.warning .bar-fill { background: #ea4335; }
+    .score-item.success .bar-fill { background: var(--success); }
+
+    /* Method badge */
+    .method-badge {
+      display: inline-block;
+      background: #e8f0fe;
+      color: var(--primary);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      margin-top: 12px;
+    }
+
+    /* Two column on desktop */
+    @media(min-width: 768px) {
+      .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      .score-box { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    /* Grid for full width items */
+    .full-width { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ATS Resume Matcher v2.0</h1>
+  <p>Advanced Semantic Matching with Keyword Intelligence</p>
+  <div class="badge">💡 Hybrid Approach: Keywords + AI</div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Enter Job Requirements</h2>
+    
+    <div class="error" id="error"></div>
+
+    <form id="matchForm" onsubmit="handleSubmit(event)">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="skills">Required Skills (comma-separated)*</label>
+          <textarea id="skills" placeholder="e.g., Python, JavaScript, REST APIs, Docker&#10;Tip: Add * after core skills, e.g., Python*" required></textarea>
+          <small style="color: var(--text-light); font-size: 12px; margin-top: 4px; display: block;">
+            Skills are matched using hybrid keyword + semantic approach
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label for="experience">Experience Requirements*</label>
+          <textarea id="experience" placeholder="e.g., 3+ years in full-stack development, led teams, experience with cloud infrastructure" required></textarea>
+          <small style="color: var(--text-light); font-size: 12px; margin-top: 4px; display: block;">
+            Years requirement + sentence-level matching
+          </small>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="education">Education Requirements*</label>
+          <textarea id="education" placeholder="e.g., Bachelor's degree in Computer Science or related field" required></textarea>
+          <small style="color: var(--text-light); font-size: 12px; margin-top: 4px; display: block;">
+            Degree level + field of study matching
+          </small>
+        </div>
+
+        <div class="form-group file">
+          <label for="resume" class="file-label" id="resumeLabel">
+            <span>📄 Click to upload resume or drag & drop</span>
+            <span style="display: block; font-size: 12px; margin-top: 4px; color: #5f6368;">PDF, DOCX, or TXT</span>
+          </label>
+          <input type="file" id="resume" accept=".pdf,.docx,.txt" required/>
+          <div class="file-name" id="fileName"></div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submitBtn">
+        <span id="btnText">Analyze Resume</span>
+        <div class="loader" id="loader">
+          <div class="spinner"></div>
+        </div>
+      </button>
+
+    </form>
+  </div>
+
+  <!-- Results Section -->
+  <div id="resultsSection" class="results">
+    <div class="success-banner" id="successBanner"></div>
+
+    <div class="card">
+      <div class="result-header">Matching Results</div>
+
+      <div class="score-box">
+        <div class="score-item" id="skillsBox">
+          <div class="score-label">Skills Match</div>
+          <div>
+            <span class="score-value" id="skillsScore">0</span><span class="score-unit">%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="skillsBar"></div></div>
+        </div>
+        <div class="score-item" id="expBox">
+          <div class="score-label">Experience Match</div>
+          <div>
+            <span class="score-value" id="expScore">0</span><span class="score-unit">%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="expBar"></div></div>
+        </div>
+        <div class="score-item" id="eduBox">
+          <div class="score-label">Education Match</div>
+          <div>
+            <span class="score-value" id="eduScore">0</span><span class="score-unit">%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="eduBar"></div></div>
+        </div>
+      </div>
+
+      <div class="score-box">
+        <div style="grid-column: 1 / -1; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 24px; border-radius: 10px;">
+          <div class="score-label" style="color: rgba(255,255,255,.7);">Overall ATS Score</div>
+          <div>
+            <span class="score-value" id="finalScore" style="color: white;">0</span><span class="score-unit" style="color: rgba(255,255,255,.8);">%</span>
+          </div>
+          <div class="method-badge" style="background: rgba(255,255,255,.2); color: white; margin-top: 14px;" id="methodBadge"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-back" onclick="location.reload()">← Start Over</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = "/api/match";
+
+  // File upload handling
+  const fileInput = document.getElementById("resume");
+  const fileLabel = document.getElementById("resumeLabel");
+  const fileName = document.getElementById("fileName");
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files[0]) {
+      fileLabel.classList.add("has-file");
+      fileName.textContent = "✓ " + fileInput.files[0].name;
+    }
+  });
+
+  fileLabel.addEventListener("dragover", e => { e.preventDefault(); fileLabel.style.background = "rgba(26,115,232,.05)"; });
+  fileLabel.addEventListener("dragleave", () => { fileLabel.style.background = ""; });
+  fileLabel.addEventListener("drop", e => {
+    e.preventDefault();
+    fileLabel.style.background = "";
+    if (e.dataTransfer.files[0]) {
+      fileInput.files = e.dataTransfer.files;
+      const evt = new Event("change", { bubbles: true });
+      fileInput.dispatchEvent(evt);
+    }
+  });
+
+  // Form submit
+  async function handleSubmit(event) {
+    event.preventDefault();
+    const err = document.getElementById("error");
+    err.style.display = "none";
+    err.textContent = "";
+
+    const btn = document.getElementById("submitBtn");
+    const btnText = document.getElementById("btnText");
+    const loader = document.getElementById("loader");
+
+    if (!fileInput.files[0]) {
+      err.textContent = "Please upload a resume file.";
+      err.style.display = "block";
+      return;
+    }
+
+    btn.disabled = true;
+    btnText.style.display = "none";
+    loader.style.display = "block";
+
+    const fd = new FormData();
+    fd.append("skills", document.getElementById("skills").value);
+    fd.append("experience", document.getElementById("experience").value);
+    fd.append("education", document.getElementById("education").value);
+    fd.append("resume", fileInput.files[0]);
+
+    try {
+      const res = await fetch(API, { method: "POST", body: fd });
+      const data = await res.json();
+
+      if (!res.ok || data.status === "error") {
+        err.textContent = data.error || "An error occurred.";
+        err.style.display = "block";
+        return;
+      }
+
+      showResults(data);
+    } catch (e) {
+      err.textContent = "Network error: " + e.message;
+      err.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btnText.style.display = "inline";
+      loader.style.display = "none";
+    }
+  }
+
+  function showResults(data) {
+    document.getElementById("resultsSection").style.display = "block";
+    
+    // Animate scores
+    animateScore("skillsScore", "skillsBar", data.skills_score);
+    animateScore("expScore", "expBar", data.experience_score);
+    animateScore("eduScore", "eduBar", data.education_score);
+    animateScore("finalScore", null, data.final_score);
+
+    // Color code boxes
+    updateBox("skillsBox", data.skills_score);
+    updateBox("expBox", data.experience_score);
+    updateBox("eduBox", data.education_score);
+
+    document.getElementById("methodBadge").textContent = "🧠 " + data.method;
+    document.getElementById("successBanner").textContent = "✓ Analysis complete";
+    document.getElementById("successBanner").style.display = "block";
+
+    document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
+  }
+
+  function animateScore(id, barId, score) {
+    const el = document.getElementById(id);
+    let current = 0;
+    const step = score / 30;
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= score) { current = score; clearInterval(timer); }
+      el.textContent = Math.round(current);
+      if (barId) {
+        document.getElementById(barId).style.width = Math.round(current) + "%";
+      }
+    }, 16);
+  }
+
+  function updateBox(id, score) {
+    const box = document.getElementById(id);
+    if (score >= 70) {
+      box.classList.add("success");
+      box.classList.remove("warning");
+    } else if (score < 50) {
+      box.classList.add("warning");
+      box.classList.remove("success");
+    } else {
+      box.classList.remove("warning", "success");
+    }
+  }
+</script>
+
+</body>
+</html>
